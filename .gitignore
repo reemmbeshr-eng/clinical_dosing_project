@@ -1,0 +1,16 @@
+# Virtual environment
+dosenv/
+
+# Python cache
+__pycache__/
+
+# Environment variables
+.env
+
+# Data files
+*.csv
+*.backup
+*.xlsx
+
+# OS files
+.DS_Store
