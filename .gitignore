@@ -1,11 +1,3 @@
-# Virtual environment
-dosenv/
-
-# Python cache
-__pycache__/
-
-# Environment variables
-.env
 
 # Data files
 *.csv
@@ -14,3 +6,53 @@ __pycache__/
 
 # OS files
 .DS_Store
+
+
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+
+# Virtual Environments
+venv/
+env/
+.venv/
+dosenv/
+
+# OS / Editor
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+
+# Streamlit
+.streamlit/
+
+# ML / AI Artifacts
+*.pth
+*.pt
+*.onnx
+
+# OCR / Temp Images
+*.png
+*.jpg
+*.jpeg
+*.bmp
+
+# Databases / Secrets
+.env
+*.env
+*.db
+*.sqlite
+*.sqlite3
+
+# Logs
+*.log
+
+# Jupyter
+.ipynb_checkpoints/
+
+# System temp
+temp/
+tmp/

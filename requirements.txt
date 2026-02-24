@@ -1,1 +1,7 @@
+streamlit
 psycopg2-binary
+torch
+torchvision
+pillow
+opencv-python
+pytesseract

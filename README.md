@@ -1,21 +1,37 @@
-# Clinical Drug Dosing Decision Support System
+# 💊 Pediatric Clinical Dosing Assistant
 
-This project is a database-driven clinical decision support system
-that retrieves reference-based drug dosing information from a PostgreSQL database
-and applies transparent parameter-based calculations (e.g. weight and renal function).
+A clinical decision support system for pediatric drug dosing,
+integrating rule-based logic, renal-adjusted dosing, and AI-assisted
+drug recognition.
 
-## Technologies
-- PostgreSQL
+## 🚀 Features
+- Pediatric dose calculation (mg/kg, mg/m²)
+- Renal-adjusted dosing based on GFR / CrCl
+- AI-assisted drug identification from images
+- Dose preparation and vial reconstitution guidance
+- Safety alerts for high-risk doses
+
+## 🧠 Clinical Logic
+- Standard dosing vs renal-adjusted dosing selected before calculation
+- Renal ranges matched dynamically from structured database rows
+- No unsafe assumptions when renal data is missing
+
+## 🛠️ Tech Stack
 - Python
-- SQL
+- Streamlit (UI)
+- PostgreSQL
+- PyTorch (ResNet18)
+- OCR (Tesseract)
+- Ollama (LLM assistance)
 
-## Project Scope
-- Stores drug dosing references in a relational database
-- Retrieves dosing information based on drug and indication
-- Supports renal function–based dosing references
-- Performs transparent dose calculations based on clinical parameters
+## 📂 Project Structure
+See folder structure above.
 
-## Current Status
-- PostgreSQL database created
-- Reference data imported and queried successfully
-- Python–PostgreSQL connection established
+## ⚠️ Disclaimer
+This tool is for educational and research purposes only.
+It does not replace clinical judgment.
+
+## 📌 Future Work
+- Auto-calculation of CrCl
+- Contraindication alerts
+- Expanded drug database

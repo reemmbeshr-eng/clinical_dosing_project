@@ -1,18 +1,18 @@
-from reference_service import get_drug_reference
-from logic_service import (
+from .reference_service import get_drug_reference
+from .logic_service import (
     calculate_pediatric_dose_base,
     divide_daily_dose
 )
-from ai_input_service import extract_drug_and_indication_from_text
-from ai_preparation_service import extract_reconstitution_from_text
-from safety_service import (
+from .ai_input_service import extract_drug_and_indication_from_text
+from .preparation_pipeline import extract_reconstitution
+from .safety_service import (
     generate_safety_flags,
     format_safety_comment
 )
 
-# =========================
+
 # Shared variables
-# =========================
+
 pl = ph = None          # dose per administration (mg)
 dl = dh = None          # daily dose (mg/day)
 interval_hours = None
@@ -25,15 +25,15 @@ def section(title):
     print("=" * 50)
 
 
-# =========================
+
 # App start
-# =========================
+
 print("\nPEDIATRIC DRUG DOSING ASSISTANT")
 print("-" * 50)
 
-# =========================
+
 # Clinical query
-# =========================
+
 print("\nEnter clinical query:")
 query = input("> ")
 
@@ -46,9 +46,9 @@ if not drug or not indication:
 print(f"\nDetected drug: {drug}")
 print(f"Detected indication: {indication}")
 
-# =========================
+
 # Get reference
-# =========================
+
 ref = get_drug_reference(drug, indication)
 
 if not ref:
@@ -58,18 +58,18 @@ if not ref:
 section("Dosage Reference")
 print(ref["dosage"])
 
-# =========================
+
 # Patient parameters
-# =========================
+
 weight = float(input("\nEnter patient weight (kg): "))
 
 height = None
 if "mg/m2" in ref["dosage"].lower() or "mg/m²" in ref["dosage"].lower():
     height = float(input("Enter patient height (cm): "))
 
-# =========================
+
 # Renal decision
-# =========================
+
 renal_active = False
 gfr_value = None
 
@@ -85,9 +85,9 @@ if renal_choice == "y":
 
 
 
-# =========================
+
 # Dose calculation
-# =========================
+
 section("Dose Calculation")
 
 # ---------- RENAL DOSING PATH ----------
@@ -114,7 +114,6 @@ if renal_active:
         print(f"Patient GFR = {gfr_value}. No matching renal dosing available.")
         exit()
 
-    # استخراج الجرعة
     dose_match = re.search(
     r"(\d+)\s*to\s*(\d+)\s*mg/kg/dose",
     text
@@ -130,7 +129,6 @@ if renal_active:
 
     
 
-    # استخراج interval
     interval_match = re.search(r"every\s+(\d+)", text)
     interval_hours = int(interval_match.group(1)) if interval_match else None
 
@@ -171,18 +169,18 @@ else:
         print(f"Doses per day: {int(doses_per_day)}")
         print(f"Dose per administration: {pl:.2f} – {ph:.2f} mg")
 
-# =========================
+
 # Administration
-# =========================
+
 section("Administration")
 print(ref["administration"])
 
-# =========================
+
 # Reconstitution / Preparation
-# =========================
+
 section("Reconstitution")
 
-prep_data = extract_reconstitution_from_text(ref["preparation"])
+prep_data = extract_reconstitution(ref["preparation"])
 
 if prep_data and prep_data.get("reconstitution"):
     recon_list = prep_data["reconstitution"]
@@ -222,9 +220,9 @@ else:
     print("⚠ AI could not extract reconstitution data from reference.")
     print("Please refer to preparation instructions manually.")
 
-# =========================
+
 # Safety check
-# =========================
+
 print("\n--- SAFETY COMMENT ---")
 
 flags = generate_safety_flags(

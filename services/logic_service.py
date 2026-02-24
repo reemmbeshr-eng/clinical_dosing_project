@@ -1,9 +1,7 @@
 import re
 import math
 
-# -------------------------
 # Detect dose type
-# -------------------------
 def detect_dose_type(dosage_text):
     text = dosage_text.lower()
     if "mg/kg/day" in text:
@@ -15,10 +13,7 @@ def detect_dose_type(dosage_text):
     return "UNKNOWN"
 
 
-# -------------------------
 # Extract numeric dose range
-# supports ranges like "200 to 300"
-# -------------------------
 def extract_dose_range(dosage_text):
     numbers = re.findall(r"\d+\.?\d*", dosage_text)
     nums = [float(n) for n in numbers]
@@ -29,9 +24,7 @@ def extract_dose_range(dosage_text):
     return nums[0], nums[1]
 
 
-# -------------------------
 # Extract max daily dose (mg)
-# -------------------------
 def extract_max_daily_dose(dosage_text):
     match = re.search(r"max(imum)? daily dose[:\s]*([\d\.]+)\s*(mg|g)", dosage_text.lower())
     if not match:
@@ -43,17 +36,12 @@ def extract_max_daily_dose(dosage_text):
     return value
 
 
-# -------------------------
 # BSA (Mosteller)
-# -------------------------
 def calculate_bsa(weight, height):
     return math.sqrt((weight * height) / 3600)
 
 
-# -------------------------
 # Core pediatric dose calculation
-# (NO interval decision here)
-# -------------------------
 def calculate_pediatric_dose_base(dosage_text, weight, height=None):
     dose_type = detect_dose_type(dosage_text)
     dose_range = extract_dose_range(dosage_text)
@@ -96,9 +84,7 @@ def calculate_pediatric_dose_base(dosage_text, weight, height=None):
     }
 
 
-# -------------------------
 # Interval-based division (user-defined)
-# -------------------------
 def divide_daily_dose(daily_low, daily_high, interval_hours):
     doses_per_day = 24 / interval_hours
     per_dose_low = daily_low / doses_per_day
