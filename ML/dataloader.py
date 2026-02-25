@@ -1,6 +1,9 @@
 #2
 from torchvision import transforms
 from PIL import Image
+from torchvision.datasets import ImageFolder
+from torch.utils.data import DataLoader
+import os
 
 
 def ensure_rgb(img):
@@ -35,9 +38,6 @@ val_test_transform = transforms.Compose([
     )
 ])
 
-from torchvision.datasets import ImageFolder
-from torch.utils.data import DataLoader
-import os
 
 ## labeling
 DATASET_DIR = "ML/dataset"

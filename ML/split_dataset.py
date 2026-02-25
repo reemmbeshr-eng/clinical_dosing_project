@@ -4,9 +4,7 @@ import os
 import shutil
 import random
 
-# =============================
 # Configuration
-# =============================
 RANDOM_SEED = 42
 
 RAW_DIR = "ML/rawimages"
@@ -23,9 +21,7 @@ IMG_EXTENSIONS = (".jpg", ".jpeg", ".png", ".bmp")
 random.seed(RANDOM_SEED)
 
 
-# =============================
 # Helper functions
-# =============================
 def is_image(file_name):
     return file_name.lower().endswith(IMG_EXTENSIONS)
 
@@ -71,9 +67,7 @@ def split_class(class_name):
     )
 
 
-# =============================
 # Main execution
-# =============================
 def main():
     if not os.path.exists(RAW_DIR):
         raise FileNotFoundError(f"Raw images folder not found: {RAW_DIR}")
