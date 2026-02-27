@@ -102,8 +102,15 @@ with tab1:
 
         if st.button("Analyze text"):
             drug, indication = extract_drug_and_indication_from_text(query)
+            
             st.session_state.drug = drug
             st.session_state.indication = indication
+
+            if drug and indication:
+                st.success(f"Detected drug: {drug}")
+                st.info(f"Indication: {indication}")
+            else:
+                st.error("Could not extract clinical entities.")
 
     # -------------------------
     # IMAGE MODE
@@ -260,38 +267,95 @@ with tab2:
     # STEP 2 — Preparation
     # ==============================
     if st.session_state.dose_result:
+
+        st.subheader("💉 Preparation")
+
         prep = extract_reconstitution(ref["preparation"])
 
-        st.subheader("💉 Vial Information")
+        
 
-        vial_mg = st.number_input(
-            "Vial strength you have (mg)",
-            min_value=1.0,
-            step=50.0
-        )
+        # -----------------------------
+        # Case 1: Reconstitution available
+        # -----------------------------
+        if prep.get("reconstitution"):
 
-        if st.button("🧪 Calculate Preparation"):
-            max_conc = prep.get("max_concentration_mg_ml", 30)
-            required_dose = st.session_state.dose_result["high"]
+            recon_list = prep["reconstitution"]
+            max_conc = prep.get("max_concentration_mg_ml")
 
-            reconstitution_volume = vial_mg / max_conc
-            withdraw_volume = required_dose / max_conc
-            vials_needed = required_dose / vial_mg
+            st.markdown("### Available reconstitution options:")
 
-            st.success("✅ Preparation Instructions")
+            for item in recon_list:
+                st.write(f"- {item['vial_mg']} mg vial → add {item['volume_ml']} mL")
 
-            st.markdown(
-                f"""
-                • Reconstitute **{vial_mg:.0f} mg vial** with  
-                  **{reconstitution_volume:.1f} mL**
-
-                • Withdraw **{withdraw_volume:.1f} mL**  
-                  to give **{required_dose:.0f} mg**
-                """
+            vial_strength = st.selectbox(
+                "Select vial strength (mg)",
+                [item["vial_mg"] for item in recon_list]
             )
 
-            if vials_needed > 1:
-                st.info(f"≈ {vials_needed:.1f} vials required")
+            selected = next(
+                (x for x in recon_list if x["vial_mg"] == vial_strength),
+                None
+            )
+
+            if selected:
+
+                concentration = selected["vial_mg"] / selected["volume_ml"]
+
+                st.success(f"Resulting concentration: {concentration:.2f} mg/mL")
+
+                low_dose = st.session_state.dose_result["low"]
+                high_dose = st.session_state.dose_result["high"]
+
+                volume_low = low_dose / concentration
+                volume_high = high_dose / concentration
+
+                st.markdown("### 💊 Volume to withdraw per dose:")
+                st.write(f"{volume_low:.2f} – {volume_high:.2f} mL")
+
+                if max_conc and concentration > max_conc:
+                    st.error(
+                        f"⚠ Concentration exceeds recommended maximum ({max_conc} mg/mL)."
+                    )
+
+                    # نحسب dilution المطلوب
+                    required_total_volume_low = low_dose / max_conc
+                    required_total_volume_high = high_dose / max_conc
+
+                    extra_diluent_low = required_total_volume_low - volume_low
+                    extra_diluent_high = required_total_volume_high - volume_high
+
+                    st.markdown("### 💧 Additional Dilution Required:")
+
+                    st.write(
+                        f"To reach ≤ {max_conc} mg/mL:"
+                    )
+
+                    st.write(
+                        f"• Add additional diluent: "
+                        f"{extra_diluent_low:.2f} – {extra_diluent_high:.2f} mL"
+                    )
+
+                    st.write(
+                        f"• Final total volume per dose: "
+                        f"{required_total_volume_low:.2f} – {required_total_volume_high:.2f} mL"
+                    )
+
+        # -----------------------------
+        # Case 2: Dilution only
+        # -----------------------------
+        elif prep.get("dilution_only"):
+            st.info("No reconstitution required. Dilution instructions only.")
+            if prep.get("max_concentration_mg_ml"):
+                st.write(
+                    f"Maximum final concentration: "
+                    f"{prep['max_concentration_mg_ml']} mg/mL"
+                )
+
+        # -----------------------------
+        # Case 3: Nothing structured found
+        # -----------------------------
+        else:
+            st.warning("No structured preparation data detected.")
 
 # ======================================================
 # TAB 3 — Safety & AI Explanation

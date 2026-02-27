@@ -1,10 +1,11 @@
 import subprocess
 import json
 
+
 def extract_reconstitution_ai(preparation_text: str):
     """
-    AI-first extraction.
-    Always returns a fixed structure.
+    AI extraction layer (secondary validation).
+    Returns structured data safely.
     """
 
     prompt = f"""
@@ -26,16 +27,22 @@ Text:
 {preparation_text}
 """
 
-    result = subprocess.run(
-        ["ollama", "run", "mistral"],
-        input=prompt.encode("utf-8"),
-        capture_output=True
-    )
-
-    output = result.stdout.decode("utf-8", errors="ignore").strip()
-
     try:
-        data = json.loads(output)
+        result = subprocess.run(
+            ["ollama", "run", "mistral"],
+            input=prompt.encode("utf-8"),
+            capture_output=True,
+            timeout=20
+        )
+
+        output = result.stdout.decode("utf-8", errors="ignore").strip()
+
+        json_start = output.find("{")
+        json_end = output.rfind("}") + 1
+        clean_json = output[json_start:json_end]
+
+        data = json.loads(clean_json)
+
     except Exception:
         data = {}
 
