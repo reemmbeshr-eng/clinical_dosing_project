@@ -3,20 +3,30 @@ import os
 import streamlit as st
 from PIL import Image
 import re
+import tempfile
+
+# ======================================================
 # Fix ROOT PATH
+# ======================================================
 ROOT_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
 if ROOT_DIR not in sys.path:
     sys.path.insert(0, ROOT_DIR)
 
+# ======================================================
 # Imports
+# ======================================================
 from services.ai_input_service import extract_drug_and_indication_from_text
 from services.reference_service import get_drug_reference
 from services.logic_service import calculate_pediatric_dose_base, divide_daily_dose
 from services.preparation_pipeline import extract_reconstitution
 from services.safety_service import generate_safety_flags, format_safety_comment
+from services.ai_service import explain_dose_with_ollama
 from ML.inference import predict_drug_from_image
+from services.ai_vision_service import extract_text_from_image, extract_vial_strength_mg
 
-
+# ======================================================
+# Renal Selector
+# ======================================================
 def select_renal_dose(renal_text: str, gfr: float):
     if not renal_text:
         return None
@@ -40,7 +50,11 @@ def select_renal_dose(renal_text: str, gfr: float):
                     return line
 
     return None
+
+
+# ======================================================
 # Page config
+# ======================================================
 st.set_page_config(
     page_title="Pediatric Dosing Assistant",
     page_icon="💊",
@@ -49,60 +63,107 @@ st.set_page_config(
 
 st.title("💊 Pediatric Dosing Assistant")
 
+# ======================================================
 # Session State
+# ======================================================
 if "drug" not in st.session_state:
     st.session_state.drug = None
 if "indication" not in st.session_state:
     st.session_state.indication = None
 if "dose_result" not in st.session_state:
     st.session_state.dose_result = None
+if "dose_type" not in st.session_state:
+    st.session_state.dose_type = None
+if "explanation" not in st.session_state:
+    st.session_state.explanation = None
 
+# ======================================================
 # Tabs
+# ======================================================
 tab1, tab2, tab3 = st.tabs([
     "🧾 Clinical Input",
     "🧮 Dose & Preparation",
-    "⚠️ Safety"
+    "⚠️ Safety & AI Explanation"
 ])
 
+# ======================================================
 # TAB 1 — Clinical Input
+# ======================================================
 with tab1:
     st.subheader("Clinical Input")
 
     mode = st.radio("Input type", ["Text", "Image"])
 
+    # -------------------------
+    # TEXT MODE
+    # -------------------------
     if mode == "Text":
         query = st.text_area("Enter clinical query")
+
         if st.button("Analyze text"):
             drug, indication = extract_drug_and_indication_from_text(query)
             st.session_state.drug = drug
             st.session_state.indication = indication
 
+    # -------------------------
+    # IMAGE MODE
+    # -------------------------
     if mode == "Image":
         uploaded = st.file_uploader("Upload drug image", type=["jpg", "png", "jpeg"])
+
         if uploaded:
             image = Image.open(uploaded)
             st.image(image, width=250)
 
+            # =====================================
+            # 1️⃣ CNN Drug Classification
+            # =====================================
             drug_pred, conf = predict_drug_from_image(image)
-            st.info(f"AI detected: {drug_pred} ({conf:.0%})")
 
-            st.session_state.drug = st.text_input(
-                "Confirm or edit drug name",
-                value=drug_pred
+            st.subheader("🧠 CNN Drug Detection")
+            st.success(f"Detected Drug: {drug_pred}")
+            st.caption(f"Confidence: {conf:.0%}")
+
+            # نخزن اسم الدواء
+            st.session_state.drug = drug_pred
+
+            # =====================================
+            # 2️⃣ OCR Strength Detection
+            # =====================================
+            import tempfile
+
+            with tempfile.NamedTemporaryFile(delete=False, suffix=".png") as tmp_file:
+                image.save(tmp_file.name)
+                temp_path = tmp_file.name
+
+            ocr_text = extract_text_from_image(temp_path)
+            vial_strength = extract_vial_strength_mg(ocr_text)
+
+            st.subheader("🔎 OCR Strength Detection")
+            st.text_area("Raw OCR Text", ocr_text, height=100)
+
+            if vial_strength:
+                st.success(f"Detected Vial Strength: {vial_strength} mg")
+                st.session_state.vial_strength_detected = vial_strength
+            else:
+                st.warning("Could not detect vial strength from image")
+        # -------------------------
+        # Selected Drug Display
+        # -------------------------
+        if st.session_state.drug:
+            st.text_input(
+                "Selected drug",
+                value=st.session_state.drug,
+                disabled=True
             )
 
-    if st.session_state.drug:
-        st.text_input(
-            "Selected drug",
-            value=st.session_state.drug,
-            disabled=True
-        )
-        st.session_state.indication = st.text_input(
-            "Indication",
-            value=st.session_state.indication or ""
-        )
-
+            st.session_state.indication = st.text_input(
+                "Indication",
+                value=st.session_state.indication or ""
+            )
+# ======================================================
 # TAB 2 — Dose & Preparation
+# ======================================================
 with tab2:
     if not st.session_state.drug:
         st.info("Please provide clinical input first")
@@ -119,17 +180,14 @@ with tab2:
 
     st.subheader("📘 Drug Reference")
 
-    # RENAL DECISION (BEFORE DOSE)
     renal_status = st.radio(
         "Renal status",
         ["Normal renal function", "Renal impairment"]
     )
 
-    # Decide dosage reference
     if renal_status == "Normal renal function":
         dosage_text = ref["dosage"]
         st.success("Using standard dosing")
-
     else:
         gfr = st.number_input(
             "Enter GFR (mL/min/1.73 m²)",
@@ -138,9 +196,6 @@ with tab2:
         )
 
         renal_text = ref.get("renal_adjustment_dose")
-
-        st.subheader("DEBUG renal text from DB")
-        st.code(renal_text)
 
         if not renal_text:
             st.error("No renal dosing data available")
@@ -155,7 +210,9 @@ with tab2:
         dosage_text = selected_dose
         st.warning(f"Using renal-adjusted dosing for GFR = {gfr}")
 
+    # ==============================
     # Patient Data
+    # ==============================
     st.subheader("👶 Patient Data")
 
     weight = st.number_input("Weight (kg)", min_value=0.1, value=10.0)
@@ -168,13 +225,18 @@ with tab2:
     if "day" in dosage_text.lower():
         interval = st.number_input("Interval (hours)", min_value=1.0, value=8.0)
 
+    # ==============================
     # STEP 1 — Calculate Dose
+    # ==============================
     if st.button("🧮 Calculate Dose"):
+
         base = calculate_pediatric_dose_base(
             dosage_text,
             weight,
             height
         )
+
+        st.session_state.dose_type = base["dose_type"]
 
         if base["dose_type"] == "MG_KG_DOSE":
             low, high = base["per_dose_mg"]
@@ -191,7 +253,12 @@ with tab2:
             "high": high
         }
 
+        st.session_state.explanation = None  # reset old explanation
+
+    
+    # ==============================
     # STEP 2 — Preparation
+    # ==============================
     if st.session_state.dose_result:
         prep = extract_reconstitution(ref["preparation"])
 
@@ -226,15 +293,48 @@ with tab2:
             if vials_needed > 1:
                 st.info(f"≈ {vials_needed:.1f} vials required")
 
-# TAB 3 — Safety
+# ======================================================
+# TAB 3 — Safety & AI Explanation
+# ======================================================
 with tab3:
+
     if not st.session_state.dose_result:
         st.info("Please calculate dose first")
         st.stop()
 
+    st.subheader("⚠️ Safety Evaluation")
+
+    high = st.session_state.dose_result["high"]
+
     flags = generate_safety_flags(
-        dose_per_administration_mg=st.session_state.dose_result["high"]
+        dose_per_administration_mg=high
     )
 
-    for f in format_safety_comment(flags):
-        st.warning(f)
+    formatted_flags = format_safety_comment(flags)
+
+    if formatted_flags:
+        for f in formatted_flags:
+            st.warning(f)
+    else:
+        st.success("No safety flags detected")
+
+    # ---------------------------------------------
+    # AI Dose Explanation
+    # ---------------------------------------------
+    st.divider()
+    st.subheader("🧠 AI Dose Explanation")
+
+    if st.button("Explain Dose Calculation with AI"):
+
+        with st.spinner("Generating clinical explanation..."):
+
+            st.session_state.explanation = explain_dose_with_ollama(
+                drug=st.session_state.drug,
+                indication=st.session_state.indication,
+                dose_type=st.session_state.dose_type,
+                calculated_low=st.session_state.dose_result["low"],
+                calculated_high=st.session_state.dose_result["high"]
+            )
+
+    if st.session_state.explanation:
+        st.info(st.session_state.explanation)

@@ -1,6 +1,7 @@
 from .db_connection import get_connection
 
-def get_drug_reference(drug_name, indication):
+## Get drug reference information from the database :
+def get_drug_reference(drug_name, indication): 
     conn = get_connection()
     cursor = conn.cursor()
 
