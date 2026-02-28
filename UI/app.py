@@ -23,33 +23,8 @@ from services.safety_service import generate_safety_flags, format_safety_comment
 from services.ai_service import explain_dose_with_ollama
 from ML.inference import predict_drug_from_image
 from services.ai_vision_service import extract_text_from_image, extract_vial_strength_mg
+from services.logic_service import select_renal_dose
 
-# ======================================================
-# Renal Selector
-# ======================================================
-def select_renal_dose(renal_text: str, gfr: float):
-    if not renal_text:
-        return None
-
-    lines = renal_text.split("\n")
-
-    for line in lines:
-        numbers = [float(n) for n in re.findall(r"\d+\.?\d*", line)]
-
-        if len(numbers) >= 2:
-            low, high = numbers[0], numbers[1]
-            if low <= gfr <= high:
-                return line
-
-        elif len(numbers) == 1:
-            if "less" in line.lower() or "<" in line:
-                if gfr < numbers[0]:
-                    return line
-            if "greater" in line.lower() or ">" in line:
-                if gfr > numbers[0]:
-                    return line
-
-    return None
 
 
 # ======================================================

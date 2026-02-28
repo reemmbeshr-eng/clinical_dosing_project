@@ -92,3 +92,29 @@ def divide_daily_dose(daily_low, daily_high, interval_hours):
     return doses_per_day, per_dose_low, per_dose_high
 
 
+# ======================================================
+# Renal Selector
+# ======================================================
+def select_renal_dose(renal_text: str, gfr: float):
+    if not renal_text:
+        return None
+
+    lines = renal_text.split("\n")
+
+    for line in lines:
+        numbers = [float(n) for n in re.findall(r"\d+\.?\d*", line)]
+
+        if len(numbers) >= 2:
+            low, high = numbers[0], numbers[1]
+            if low <= gfr <= high:
+                return line
+
+        elif len(numbers) == 1:
+            if "less" in line.lower() or "<" in line:
+                if gfr < numbers[0]:
+                    return line
+            if "greater" in line.lower() or ">" in line:
+                if gfr > numbers[0]:
+                    return line
+
+    return None
