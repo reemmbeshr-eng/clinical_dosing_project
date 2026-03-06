@@ -1,74 +1,111 @@
-# 💊 Pediatric Clinical Dosing Assistant
+An AI-powered application that combines Computer Vision, NLP, and clinical logic to assist in medical decision workflows.
 
-A clinical decision support system for pediatric drug dosing,
-integrating rule-based logic, renal-adjusted dosing, and AI-assisted
-drug recognition.
+Built as an interactive Streamlit application.
 
-## 🚀 Features
-- Pediatric dose calculation (mg/kg, mg/m²)
-- Renal-adjusted dosing based on GFR / CrCl
-- AI-assisted drug identification from images
-- Dose preparation and vial reconstitution guidance
-- Safety alerts for high-risk doses
+🚀 System Components
+🩻 Chest X-ray Pneumonia Detection
 
-## 🧠 Clinical Logic
-- Standard dosing vs renal-adjusted dosing selected before calculation
-- Renal ranges matched dynamically from structured database rows
-- No unsafe assumptions when renal data is missing
+Detects pneumonia from chest X-ray images.
 
-## 🛠️ Tools & Technologies
+Technologies used
 
-### 🔹 Programming & Frameworks
-- **Python 3** — core application logic
-- **Streamlit** — interactive clinical UI
+PyTorch → building the CNN model
 
----
+Computer Vision → medical image classification
 
-### 🔹 Clinical Logic
-- Custom rule-based dosing engine
-- Clear separation between:
-  - Standard dosing
-  - Renal-adjusted dosing
-- Explainable, traceable calculations
+Image preprocessing → resizing and tensor transformation
 
----
+🧾 Clinical Text Processing
 
-### 🔹 Database & Data Layer
-- **PostgreSQL** — structured clinical reference storage
-- **psycopg2** — database connectivity
-- Renal dosing stored as independent rows for scalability
+Extracts drug name and indication from clinical text queries.
 
----
+Technologies used
 
-### 🔹 Machine Learning
-- **PyTorch**
-- **ResNet-18** for image-based drug classification
-- **Torchvision** for image preprocessing
+NLP parsing → extract medical entities
 
----
+LLM (Ollama) → assist entity extraction from text
 
-### 🔹 Image Processing & OCR
-- **OpenCV** — image preprocessing
-- **Tesseract OCR** — text extraction
-- **Pillow (PIL)** — image handling
+💊 Drug Image Recognition
 
----
+Detects drug information from vial images.
 
-### 🔹 LLM Integration
-- **Ollama (Local LLM Runtime)**
-  - Drug & indication extraction from free text
-  - Natural-language explanation of dose calculations
-  - Local execution for data privacy
+Technologies used
 
+CNN image classification → drug name detection
 
-## 📂 Project Structure
-See folder structure above.
+OCR → extract text from drug labels
 
-## ⚠️ Disclaimer
-This tool is for educational and research purposes only.
-It does not replace clinical judgment.
+Image processing → detect vial strength
 
-## 📌 Future Work
-- Auto-calculation of CrCl
-- Contraindication alerts
-- Expanded drug database
+👶 Pediatric Dose Calculation
+
+Calculates drug dosing based on patient parameters.
+
+Technologies used
+
+Rule-based clinical logic → dose calculation
+
+Python algorithms → mg/kg and mg/m² calculations
+
+🧠 Renal Dose Adjustment
+
+Adjusts dosing according to kidney function.
+
+Technologies used
+
+Rule-based decision logic → GFR-based dose selection
+
+💉 Drug Preparation & Dilution
+
+Determines preparation instructions for drug administration.
+
+Technologies used
+
+Text parsing → extract preparation instructions
+
+Mathematical calculations → concentration and dilution
+
+⚠️ Safety Evaluation
+
+Performs dose safety validation.
+
+Technologies used
+
+Clinical safety rules → detect unsafe dosing
+
+🤖 AI Clinical Explanation
+
+Explains the calculated dose and decision logic.
+
+Technologies used
+
+LLM (Ollama) → generate clinical explanation
+
+🧠 Tech Stack
+
+## Programming
+
+- Python
+
+## Framework
+
+- Streamlit
+
+## Machine Learning
+
+- PyTorch
+- CNN models
+
+## Computer Vision
+
+- Image classification
+- OCR extraction
+
+## NLP
+
+- Deterministic NLP
+- LLM-assisted extraction
+
+## AI Explanation
+
+- Ollama LLM
