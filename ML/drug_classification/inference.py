@@ -2,10 +2,18 @@ import torch
 import torch.nn as nn
 from torchvision import models, transforms
 from PIL import Image
+import os
+import torch
 
+BASE_DIR = os.path.dirname(__file__)
+
+import torch
+
+device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 # ---------- CONFIG ----------
-MODEL_PATH = "ML/resnet18_drug_classifier.pth"
 
+MODEL_PATH = os.path.join(BASE_DIR, "resnet18_drug_classifier.pth")
+checkpoint = torch.load(MODEL_PATH, map_location=device)
 # ---------- DEVICE ----------
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
