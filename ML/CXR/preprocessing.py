@@ -6,19 +6,12 @@ train_transform = transforms.Compose([
 
     transforms.RandomHorizontalFlip(),
 
-    transforms.RandomRotation(10),
-
-    transforms.ColorJitter(
-        brightness=0.1,
-        contrast=0.1
-    ),
+    transforms.RandomRotation(5),
 
     transforms.ToTensor(),
 
-    transforms.Normalize(
-        mean=[0.485],
-        std=[0.229]
-    )
+    transforms.Normalize([0.5,0.5,0.5],[0.5,0.5,0.5])
+
 ])
 
 val_test_transform = transforms.Compose([

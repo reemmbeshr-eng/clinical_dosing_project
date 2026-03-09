@@ -2,6 +2,7 @@ import torch
 import numpy as np
 import matplotlib.pyplot as plt
 import seaborn as sns
+import json
 
 from sklearn.metrics import (
     accuracy_score,
@@ -17,11 +18,17 @@ from model import PneumoniaCNN
 from dataloader import test_loader
 
 
-# device
+# -----------------------------
+# DEVICE
+# -----------------------------
+
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 
-# load model
+# -----------------------------
+# LOAD MODEL
+# -----------------------------
+
 model = PneumoniaCNN().to(device)
 
 model.load_state_dict(
@@ -31,12 +38,19 @@ model.load_state_dict(
 model.eval()
 
 
+# -----------------------------
+# STORAGE
+# -----------------------------
+
 all_preds = []
 all_labels = []
 all_probs = []
 
 
-# evaluation loop
+# -----------------------------
+# EVALUATION LOOP
+# -----------------------------
+
 with torch.no_grad():
 
     for images, labels in test_loader:
@@ -59,7 +73,10 @@ all_labels = np.array(all_labels)
 all_probs = np.array(all_probs)
 
 
-# metrics
+# -----------------------------
+# METRICS
+# -----------------------------
+
 accuracy = accuracy_score(all_labels, all_preds)
 precision = precision_score(all_labels, all_preds)
 recall = recall_score(all_labels, all_preds)
@@ -76,15 +93,36 @@ print("F1 Score :", f1)
 print("AUC      :", auc)
 
 
-# confusion matrix
+# -----------------------------
+# SAVE METRICS (FOR DASHBOARD)
+# -----------------------------
+
+metrics = {
+    "accuracy": float(accuracy),
+    "precision": float(precision),
+    "recall": float(recall),
+    "f1": float(f1),
+    "auc": float(auc)
+}
+
+with open("model_metrics.json","w") as f:
+    json.dump(metrics,f)
+
+
+# -----------------------------
+# CONFUSION MATRIX
+# -----------------------------
+
 cm = confusion_matrix(all_labels, all_preds)
 
 print("\nConfusion Matrix")
 print(cm)
 
+np.save("confusion_matrix.npy", cm)
+
 
 # -----------------------------
-# Confusion Matrix Plot
+# CONFUSION MATRIX PLOT
 # -----------------------------
 
 plt.figure(figsize=(6,5))
@@ -106,10 +144,19 @@ plt.show()
 
 
 # -----------------------------
-# ROC Curve
+# ROC CURVE
 # -----------------------------
 
 fpr, tpr, thresholds = roc_curve(all_labels, all_probs)
+
+roc_data = {
+    "fpr": fpr.tolist(),
+    "tpr": tpr.tolist()
+}
+
+with open("roc_data.json","w") as f:
+    json.dump(roc_data,f)
+
 
 plt.figure()
 
