@@ -5,25 +5,9 @@ import os
 import cv2
 import random
 import numpy as np
-from sklearn.metrics import roc_curve, auc
-from sklearn.metrics import precision_score, recall_score, f1_score
 import json
-# -----------------------------
-# PAGE
-# -----------------------------
 
 st.set_page_config(layout="wide")
-
-st.markdown("""
-<style>
-.block-container{
-padding-top:1rem;
-padding-bottom:0rem;
-padding-left:2rem;
-padding-right:2rem;
-}
-</style>
-""", unsafe_allow_html=True)
 
 PRIMARY = "#2a9d8f"
 SECONDARY = "#1f4e79"
@@ -48,98 +32,28 @@ lambda x: "Pneumonia" if "pneumonia" in x.lower() else "Other"
 train_dir = "ML/CXR/CXR_dataset/train"
 classes = os.listdir(train_dir)
 
+with open("model_metrics.json") as f:
+    metrics = json.load(f)
+
+roc_data = json.load(open("roc_data.json"))
+
 # -----------------------------
 # TITLE
 # -----------------------------
 
-st.markdown(
-"""
-<h1 style="
-text-align:center;
-color:#1f4e79;
-margin-top:10px;
-margin-bottom:20px;
-">
+st.markdown("""
+<h1 style='text-align:center;color:#1f4e79'>
 Clinical Dosing & Pneumonia AI Dashboard
 </h1>
-""",
-unsafe_allow_html=True
-)
+""",unsafe_allow_html=True)
 
-# -----------------------------
-# METRICS
-# -----------------------------
+# ======================================================
+# X-RAY DATASET ANALYSIS
+# ======================================================
 
-m1,m2,m3,m4 = st.columns(4)
-
-m1.metric("Drugs", df['generic_name'].nunique())
-m2.metric("Indications", df['indication'].nunique())
-m3.metric("Administration", df['administration'].nunique())
-m4.metric("Dose Adjustment", df['renal_adjustment'].nunique())
-
-# -----------------------------
-# ROW 1
-# -----------------------------
-
-c1,c2,c3 = st.columns([1,1,1.4])
-
-# Indications
-with c1:
-
-    counts = df['indication_group'].value_counts().reset_index()
-    counts.columns = ["type","count"]
-
-    fig = px.pie(
-        counts,
-        names="type",
-        values="count",
-        color_discrete_sequence=[PRIMARY,SECONDARY],
-        title="Indications"
-    )
-
-    fig.update_layout(height=260)
-
-    st.plotly_chart(fig,use_container_width=True)
-
-# Renal Adjustment
-with c2:
-
-    adj = df['renal_adjustment'].value_counts().reset_index()
-    adj.columns = ["type","count"]
-
-    fig = px.pie(
-        adj,
-        names="type",
-        values="count",
-        color_discrete_sequence=[SECONDARY,PRIMARY],
-        title="Renal Adjustment"
-    )
-
-    fig.update_layout(height=260)
-
-    st.plotly_chart(fig,use_container_width=True)
-
-# Heatmap
-with c3:
-
-    table = pd.crosstab(df['indication'],df['renal_adjustment'])
-
-    fig = px.imshow(
-        table,
-        color_continuous_scale="Teal",
-        title="Indication vs Adjustment"
-    )
-
-    fig.update_layout(height=300)
-
-    st.plotly_chart(fig,use_container_width=True)
-
-# -----------------------------
-# ROW 2
-# -----------------------------
+st.markdown("## X-ray Dataset Analysis")
 
 counts = []
-
 for c in classes:
     counts.append(len(os.listdir(os.path.join(train_dir,c))))
 
@@ -148,41 +62,40 @@ data = pd.DataFrame({
 "count":counts
 })
 
-c4,c5,c6 = st.columns(3)
+c1,c2,c3 = st.columns(3)
 
-# Training Distribution
-with c4:
+with c1:
 
     fig = px.bar(
         data,
         x="class",
         y="count",
         color="class",
-        color_discrete_sequence=[PRIMARY,SECONDARY],
-        title="Training Distribution"
+        text="count",
+        title="Training Distribution",
+        color_discrete_sequence=[PRIMARY,SECONDARY]
     )
 
-    fig.update_layout(height=260,showlegend=False)
+    fig.update_traces(textposition="outside")
+    fig.update_layout(height=340)
 
     st.plotly_chart(fig,use_container_width=True)
 
-# Pneumonia vs Normal
-with c5:
+with c2:
 
     fig = px.pie(
         data,
         names="class",
         values="count",
-        color_discrete_sequence=[SECONDARY,PRIMARY],
-        title="Pneumonia vs Normal"
+        title="Pneumonia vs Normal",
+        color_discrete_sequence=[SECONDARY,PRIMARY]
     )
 
-    fig.update_layout(height=260)
+    fig.update_layout(height=340)
 
     st.plotly_chart(fig,use_container_width=True)
 
-# Image Size Distribution
-with c6:
+with c3:
 
     widths = []
     heights = []
@@ -211,30 +124,27 @@ with c6:
         color_discrete_sequence=[PRIMARY,SECONDARY]
     )
 
-    fig.update_layout(height=260)
+    fig.update_layout(height=340)
 
     st.plotly_chart(fig,use_container_width=True)
 
 # -----------------------------
-# ROW 3
+# Pixel + dataset distribution
 # -----------------------------
 
-c7, c8 = st.columns(2)
+c4,c5 = st.columns(2)
 
-# Pixel Intensity Distribution
-with c7:
+with c4:
 
-    sample_img_path = os.path.join( 
-    train_dir,
-    classes[0],
-    random.choice(os.listdir(os.path.join(train_dir,classes[0])))
-                )
+    sample_img_path = os.path.join(
+        train_dir,
+        classes[0],
+        random.choice(os.listdir(os.path.join(train_dir,classes[0])))
+    )
 
     img = cv2.imread(sample_img_path,0)
 
     pixels = img.ravel()
-
-    # تقليل عدد البكسلات
     pixels = np.random.choice(pixels, size=50000, replace=False)
 
     pixel_df = pd.DataFrame({"pixel":pixels})
@@ -247,11 +157,11 @@ with c7:
         color_discrete_sequence=[PRIMARY]
     )
 
-    fig.update_layout(height=260)
+    fig.update_layout(height=340)
 
     st.plotly_chart(fig,use_container_width=True)
-# Dataset Distribution
-with c8:
+
+with c5:
 
     base_path = "ML/CXR/CXR_dataset"
     splits = ["train","val","test"]
@@ -281,40 +191,35 @@ with c8:
         x="split",
         y="count",
         color="class",
+        text="count",
         barmode="group",
         title="Dataset Distribution",
         color_discrete_sequence=[PRIMARY,SECONDARY]
     )
 
-    fig.update_layout(height=260)
+    fig.update_traces(textposition="outside")
+    fig.update_layout(height=340)
 
     st.plotly_chart(fig,use_container_width=True)
 
-# -----------------------------
-# ROW 4
-# -----------------------------
+# ======================================================
+# TRAINING PERFORMANCE
+# ======================================================
 
-c9, c10, c11 = st.columns(3)
+st.markdown("## Model Training Performance")
 
 epochs = list(range(1,11))
 
 train_loss = [0.3735,0.1982,0.1809,0.1951,0.1810,0.1668,0.1470,0.1509,0.1578,0.1429]
-
 val_acc = [0.8474,0.9077,0.8371,0.9248,0.9487,0.9339,0.9396,0.9442,0.9613,0.9374]
 
-cm = np.array([[223,14],
-               [20,621]])
+cm = np.array([[223,14],[20,621]])
 
-# -----------------------------
-# Training Loss
-# -----------------------------
+c6,c7,c8 = st.columns(3)
 
-with c9:
+with c6:
 
-    loss_df = pd.DataFrame({
-        "Epoch":epochs,
-        "Loss":train_loss
-    })
+    loss_df = pd.DataFrame({"Epoch":epochs,"Loss":train_loss})
 
     fig = px.line(
         loss_df,
@@ -325,21 +230,13 @@ with c9:
         color_discrete_sequence=[PRIMARY]
     )
 
-    fig.update_layout(height=260)
+    fig.update_layout(height=340,yaxis_range=[0,0.5])
 
     st.plotly_chart(fig,use_container_width=True)
 
+with c7:
 
-# -----------------------------
-# Validation Accuracy
-# -----------------------------
-
-with c10:
-
-    acc_df = pd.DataFrame({
-        "Epoch":epochs,
-        "Accuracy":val_acc
-    })
+    acc_df = pd.DataFrame({"Epoch":epochs,"Accuracy":val_acc})
 
     fig = px.line(
         acc_df,
@@ -350,16 +247,11 @@ with c10:
         color_discrete_sequence=[SECONDARY]
     )
 
-    fig.update_layout(height=260)
+    fig.update_layout(height=340,yaxis_range=[0,1])
 
     st.plotly_chart(fig,use_container_width=True)
 
-
-# -----------------------------
-# Confusion Matrix
-# -----------------------------
-
-with c11:
+with c8:
 
     cm_df = pd.DataFrame(
         cm,
@@ -374,59 +266,43 @@ with c11:
         title="Confusion Matrix"
     )
 
-    fig.update_layout(height=260)
+    fig.update_layout(height=340)
 
     st.plotly_chart(fig,use_container_width=True)
 
-# -----------------------------
-# ROW 5 - MODEL EVALUATION
-# -----------------------------
+# ======================================================
+# ROC + METRICS GRAPH
+# ======================================================
 
-c12, c13 = st.columns(2)
+c9,c10 = st.columns(2)
 
-with open("model_metrics.json") as f:
-    metrics = json.load(f)
-
-roc_data = json.load(open("roc_data.json"))
-
-
-# ROC Curve
-with c12:
+with c9:
 
     roc_df = pd.DataFrame({
-        "FPR": roc_data["fpr"],
-        "TPR": roc_data["tpr"]
+        "FPR":roc_data["fpr"],
+        "TPR":roc_data["tpr"]
     })
 
     fig = px.line(
         roc_df,
         x="FPR",
         y="TPR",
-        title=f"ROC Curve (AUC = {metrics['auc']:.2f})",
+        title=f"ROC Curve (AUC = {metrics['auc']:.3f})",
         color_discrete_sequence=[PRIMARY]
     )
 
-    # الخط المتقطع (Random Classifier)
     fig.add_shape(
         type="line",
-        x0=0, y0=0,
-        x1=1, y1=1,
-        line=dict(
-            dash="dash",
-            color="gray",
-            width=2
-        )
+        x0=0,y0=0,
+        x1=1,y1=1,
+        line=dict(dash="dash",color="gray")
     )
 
-    fig.update_layout(
-        height=260,
-        xaxis_title="False Positive Rate",
-        yaxis_title="True Positive Rate"
-    )
+    fig.update_layout(height=360)
 
-    st.plotly_chart(fig, use_container_width=True)
-# Precision Recall F1
-with c13:
+    st.plotly_chart(fig,use_container_width=True)
+
+with c10:
 
     metrics_df = pd.DataFrame({
         "Metric":["Precision","Recall","F1 Score"],
@@ -441,11 +317,91 @@ with c13:
         metrics_df,
         x="Metric",
         y="Value",
+        text="Value",
         color="Metric",
         title="Model Evaluation Metrics",
         color_discrete_sequence=[PRIMARY,SECONDARY,"#264653"]
     )
 
-    fig.update_layout(height=260)
+    fig.update_traces(texttemplate='%{text:.2f}',textposition='outside')
+
+    fig.update_layout(height=360,yaxis_range=[0,1])
+
+    st.plotly_chart(fig,use_container_width=True)
+
+# ======================================================
+# FINAL MODEL PERFORMANCE
+# ======================================================
+
+st.markdown("## Final Model Performance")
+
+m1,m2,m3,m4 = st.columns(4)
+
+m1.metric("Accuracy",f"{metrics['accuracy']:.3f}")
+m2.metric("Precision",f"{metrics['precision']:.3f}")
+m3.metric("Recall",f"{metrics['recall']:.3f}")
+m4.metric("F1 Score",f"{metrics['f1']:.3f}")
+
+# ======================================================
+# DRUG ANALYSIS
+# ======================================================
+
+st.markdown("## Drug Dosing Analysis")
+
+m5,m6,m7,m8 = st.columns(4)
+
+m5.metric("Drugs", df['generic_name'].nunique())
+m6.metric("Indications", df['indication'].nunique())
+m7.metric("Administration", df['administration'].nunique())
+m8.metric("Dose Adjustment", df['renal_adjustment'].nunique())
+
+c11,c12,c13 = st.columns([1,1,1.3])
+
+with c11:
+
+    counts = df['indication_group'].value_counts().reset_index()
+    counts.columns = ["type","count"]
+
+    fig = px.pie(
+        counts,
+        names="type",
+        values="count",
+        color_discrete_sequence=[PRIMARY,SECONDARY],
+        title="Indications"
+    )
+
+    fig.update_layout(height=340)
+
+    st.plotly_chart(fig,use_container_width=True)
+
+with c12:
+
+    adj = df['renal_adjustment'].value_counts().reset_index()
+    adj.columns = ["type","count"]
+
+    fig = px.pie(
+        adj,
+        names="type",
+        values="count",
+        color_discrete_sequence=[SECONDARY,PRIMARY],
+        title="Renal Adjustment"
+    )
+
+    fig.update_layout(height=340)
+
+    st.plotly_chart(fig,use_container_width=True)
+
+with c13:
+
+    table = pd.crosstab(df['indication'],df['renal_adjustment'])
+
+    fig = px.imshow(
+        table,
+        text_auto=True,
+        color_continuous_scale="Teal",
+        title="Indication vs Adjustment"
+    )
+
+    fig.update_layout(height=360)
 
     st.plotly_chart(fig,use_container_width=True)
